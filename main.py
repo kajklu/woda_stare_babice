@@ -248,7 +248,7 @@ def count_missing_people():
     missing_people = 0
     for household in households:
         local_household = household.copy()
-        while check_overusage(local_household):
+        while check_overusage(local_household): # nie usunąłem bo myślę o bardziej zaawansowanym liczeniu
             local_household['population'] += 1
             local_household['average_water_consumption'] = local_household['water_consumption'] / local_household['population']
             missing_people += 1
@@ -292,7 +292,7 @@ def plot_histogram_households_average():
     plt.ylabel('Liczba gospodarstw domowych')
     plt.grid(axis='y', alpha=0.75)
     plt.axvline(commune_average_water_consumption, color='red', linestyle='dashed', label='Średnie zużycie wody gminy')
-    plt.axvline(commune_household_mode, color='green', linestyle='dashed', label='Dominanta zużycia wody gminy')
+    plt.axvline(commune_household_mode, color='green', linestyle='dashed', label='modeaa zużycia wody gminy')
     plt.legend()
     plt.show()
 
@@ -308,7 +308,7 @@ def plot_histogram_households_total():
     plt.ylabel('Liczba gospodarstw domowych')
     plt.grid(axis='y', alpha=0.75)
     plt.axvline(commune_water_consumption/len(average_water_consumption), color='red', linestyle='dashed', label='Zużycie wody gminy')
-    plt.axvline(commune_household_mode, color='green', linestyle='dashed', label='Dominanta zużycia wody gminy')
+    plt.axvline(commune_household_mode, color='green', linestyle='dashed', label='modeaa zużycia wody gminy')
     plt.legend()
     plt.show()
 
@@ -325,7 +325,7 @@ def plot_histogram_population_average():
     plt.ylabel('Liczba osób')
     plt.grid(axis='y', alpha=0.75)
     plt.axvline(commune_water_consumption/len(average_water_consumption), color='red', linestyle='dashed', label='Zużycie wody gminy')
-    plt.axvline(commune_population_mode, color='green', linestyle='dashed', label='Dominanta zużycia wody gminy')
+    plt.axvline(commune_population_mode, color='green', linestyle='dashed', label='modeaa zużycia wody gminy')
     plt.legend()
     plt.show()
 
@@ -376,7 +376,7 @@ def count_considered_households():
 def print_table():
     printing_data = []
 
-    header = f"Typ | Dominanta populacji m3 | Dominanta gospodarstw m3 | Średnia m3 | Odchylenie standardowe | Mediana"
+    header = f"Typ | modeaa populacji m3 | modeaa gospodarstw m3 | Średnia m3 | Odchylenie standardowe | Mediana"
 
 
     final_cell_length = []
