@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import math
+import config
 from Household import Household
 
 # Data file path
@@ -302,7 +303,7 @@ def check_overusage(household):
 def count_missing_people():
     missing_people = 0
     for household in households:
-        local_household = Household(household.town,household.street,household.consumption,household.population)
+        local_household = Household(household.town,household.street,household.consumption*config.divider,household.population)
         while check_overusage(local_household):  # nie usunąłem bo myślę o bardziej zaawansowanym liczeniu
             local_household.population += 1
             local_household.mean = local_household.consumption / local_household.population
