@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import math
+import config
+from Household import Household
 
 
 # Data file path
@@ -60,49 +62,11 @@ def load_data(data_file):
         if data[0] != '﻿Miejscowość':
             town = data[0]
             street = data[1]
-            consumption = data[2].replace(',', '.')
-            population = data[3].replace(',', '.')
+            consumption = data[2]
+            population = data[3]
 
-            try:
-                consumption = float(consumption)
-            except ValueError:
-                consumption = 0
-                
-            try:
-                population = int(population)
-            except ValueError:
-                population = 0
-
-
-            household = {'town': town, 'street': street, 'population': population, 'consumption': consumption}
-
-            household = process_household(household)
-
-            try:
-                household['mean'] = household['consumption'] / household['population'] if population else 0
-            except TypeError:
-                household['mean'] = 0
-
-
-            if population is not None:
-                households.append(household)
-
-def process_household(household):
-    global divider
-
-    household['consider_flag'] = True
-
-    consumption = household['consumption']
-    population = household['population']
-
-    if consumption < 0 and reject_negative_consumption_values:
-        household['consider_flag'] = False
-    elif consumption == 0 and reject_zero_consumption_values:
-        household['consider_flag'] = False
-
-    household['consumption'] = consumption / divider
-    
-    return household
+            household = Household(town, street, population, consumption)
+            households.append(household)
 
 def print_table():
     printing_data = []
@@ -186,24 +150,23 @@ def process_global_variables():
     considered_households = 0
 
     for household in households:
-        if type(household['population']) == int:
-            commune_population += household['population']
-            
-        if household['consider_flag']:
-            considered_consumption += household['consumption']
-            considered_population += household['population']
+        if type(household.population) == int:
+            commune_population += household.population            
+        if household.consider_flag:
+            considered_consumption += household.consumption
+            considered_population += household.population
             considered_households += 1
             
-            household_type = household['population']
+            household_type = household.population
 
             if household_type not in household_types_data:
                 household_types_data[household_type] = {'count': 0, 'consumption': 0, 'averages': []}
 
             household_types_data[household_type]['count'] += 1
-            household_types_data[household_type]['consumption'] += household['consumption']  
+            household_types_data[household_type]['consumption'] += household.consumption  
 
             for _ in range(household_type):
-                household_types_data[household_type]['averages'].append(household['mean'])
+                household_types_data[household_type]['averages'].append(household.mean)
 
 
     for household_type in household_types_data:
@@ -257,9 +220,9 @@ def calculate_considered_mode():
     
     consumptions = []
     for household in households:
-        if household['consider_flag']:
-            for _ in range(household['population']):
-                consumptions.append(household['mean'])
+        if household.consider_flag:
+            for _ in range(household.population):
+                consumptions.append(household.mean)
 
     considered_mode = mode(consumptions)
 
@@ -271,9 +234,9 @@ def calculate_considered_stdev():
     
     consumptions = []
     for household in households:
-        if household['consider_flag']:
-            for _ in range(household['population']):
-                consumptions.append(household['mean'])
+        if household.consider_flag:
+            for _ in range(household.population):
+                consumptions.append(household.mean)
                 
     considered_stdev = stdev(consumptions)
 
@@ -285,9 +248,9 @@ def calculate_considered_median():
     
     consumptions = []
     for household in households:
-        if household['consider_flag']:
-            for _ in range(household['population']):
-                consumptions.append(household['mean'])
+        if household.consider_flag:
+            for _ in range(household.population):
+                consumptions.append(household.mean)
                 
     considered_median = median(consumptions)
 
@@ -297,10 +260,10 @@ def count_overusage_by_cities():
 
     for household in households:
         if check_overusage(household):
-            if household['town'] in overusages_in_cities:
-                overusages_in_cities[household['town']] += 1
+            if household.town in overusages_in_cities:
+                overusages_in_cities[household.town] += 1
             else:
-                overusages_in_cities[household['town']] = 1
+                overusages_in_cities[household.town] = 1
 
     return overusages_in_cities
 
@@ -320,7 +283,7 @@ def check_overusage(household):
     else:
         threshold = 0
 
-    if household['mean'] > threshold:
+    if household.mean > threshold:
         return True
     else:
         return False
@@ -330,8 +293,8 @@ def count_missing_people():
     for household in households:
         local_household = household.copy()
         while check_overusage(local_household): # nie usunąłem bo myślę o bardziej zaawansowanym liczeniu
-            local_household['population'] += 1
-            local_household['mean'] = local_household['consumption'] / local_household['population']
+            local_household.population += 1
+            local_household.mean = local_household.consumption / local_household.population
             missing_people += 1
     return missing_people
 
@@ -343,9 +306,9 @@ def count_missing_money(number_of_missing_people):
 def plot_histogram():
     averages = []
     for household in households:
-        if household['consider_flag']:
-            for _ in range(household['population']):
-                averages.append(household['mean'])
+        if household.consider_flag:
+            for _ in range(household.population):
+                averages.append(household.mean)
                 
     plt.hist(averages, bins=distribution_bins, color='blue', alpha=0.7)
     plt.title("Liczba osób wg zużycia wody")
@@ -365,9 +328,9 @@ def plot_average_water_consumption_vs_household_population():
     }
 
     for household in households:
-        if household['consider_flag']:
-            population = household['population']
-            mean = household['mean']
+        if household.consider_flag:
+            population = household.population
+            mean = household.mean
 
             if check_overusage(household):
                 label = 'Powyżej normy' if not added_labels['Powyżej normy'] else None
