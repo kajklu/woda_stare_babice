@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import math
 import config
 from Household import Household
-import operator
+from HouseholdType import HouseholdType
 
 
 # Data file path
@@ -34,35 +34,6 @@ distribution_bins = 120
 commune_population = int
 commune_households = int
 
-class HouseholdType:
-    def __init__(self, type):
-        self.type = type
-        self.count = 0
-        self.consumption = 0.0
-        self.population = 0
-        self.mean = float
-        self.mode = float
-        self.median = float
-        self.stdev = float
-        self.averages = []
-    def __str__(self):
-        if type(self.type) == int:
-            return f"{self.type} os. w gospodarstwie"
-        elif type(self.type) == str:
-            return f"{self,type}"
-
-    def process(self):
-        self.mean = mean(self.averages)
-        self.stdev = stdev(self.averages)
-        self.mode = mode(self.averages)
-        self.median = median(self.averages)
-
-    def add_household(self, household):
-        self.count += 1
-        self.population += household['population']
-        self.consumption += household['consumption']
-        for _ in range(household['population']):
-            self.averages.append(household['mean'])
 
 considered = HouseholdType("Gmina")
 household_types_data = []
@@ -229,7 +200,7 @@ def missing_in_towns():
     missing_by_town = {}
 
     for household in households:
-        missing = count_missing(household)
+        missing = count_missing_people(household)
 
         if missing > 0:
             if household.town in missing_by_town:
@@ -262,14 +233,13 @@ def is_overusage(household):
         return False
 
 
-def count_missing_people():
+def count_missing_people(household):
     missing_people = 0
-    for household in households:
-        local_household = Household(household.town,household.street,household.consumption*config.divider,household.population)
-        while is_overusage(local_household):  # nie usunąłem bo myślę o bardziej zaawansowanym liczeniu
-            local_household.population += 1
-            local_household.mean = local_household.consumption / local_household.population
-            missing_people += 1
+    local_household = Household(household.town,household.street,household.consumption*config.divider,household.population)
+    while is_overusage(local_household):  # nie usunąłem bo myślę o bardziej zaawansowanym liczeniu
+        local_household.population += 1
+        local_household.mean = local_household.consumption / local_household.population
+        missing_people += 1
     return missing_people
 
 def count_missing_money(missing_count):
