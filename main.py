@@ -317,6 +317,8 @@ def check_overusage(household):
         threshold = considered_stdev + considered_median
     elif overusage_threshold == 'mean+stdev':
         threshold = considered_stdev + considered_mean
+    else:
+        threshold = 0
 
     if household['mean'] > threshold:
         return True
