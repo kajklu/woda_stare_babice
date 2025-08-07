@@ -104,8 +104,9 @@ def display_output():
         print_data = print_data.replace('	','')
         print(print_data)
 
-    plot_histogram()
-    plot_average_water_consumption_vs_household_population()
+    if config.render_graphs:
+        plot_histogram()
+        plot_average_water_consumption_vs_household_population()
 
 def process_globals():
     global commune_population, commune_households, considered, household_types_data

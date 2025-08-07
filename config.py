@@ -1,6 +1,9 @@
 # Data file path
 data_csv = 'dane_raw.csv'
 
+# Decide whether to render graphs
+render_graphs = False
+
 # Set to True if the data is monthly, False if it is annual
 monthly = True
 
@@ -17,6 +20,7 @@ reject_zero_consumption_values = True
 # Display parameters
 distribution_bins = 120
 
+# What should be the range of data to be considered
 lower_cutoff_percentage = 0
 upper_cutoff_percentage = 100
 
