@@ -29,3 +29,4 @@ class Household:
             self.consider_flag = False
 
         self.consumption = self.consumption / divider
+        self.mean = self.mean / divider

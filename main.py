@@ -1,8 +1,6 @@
 import matplotlib.pyplot as plt
 import math
-import config
 from Household import Household
-
 
 # Data file path
 data_csv = 'dane_raw.csv'
@@ -11,7 +9,7 @@ data_csv = 'dane_raw.csv'
 monthly = True
 
 # Method of stealing verification
-overusage_threshold = 'mean+stdev' # Options: 'sigma+average', 'sigma+mode', 'sigma+median', static_value
+overusage_threshold = 'mean+stdev'  # Options: 'sigma+average', 'sigma+mode', 'sigma+median', static_value
 
 # Rubbish handling fee
 fee = 38
@@ -49,30 +47,32 @@ if monthly:
 else:
     divider = 1
 
+
 def load_data(data_file):
-    with open(data_file, "r", encoding = "utf-8") as file:
+    with open(data_file, "r", encoding="utf-8") as file:
         lines = file.readlines()
 
     file.close()
 
     for line in lines:
-        line.replace(',','.')
+        line.replace(',', '.')
         data = line.split(';')
-        
+
         if data[0] != '﻿Miejscowość':
             town = data[0]
             street = data[1]
-            consumption = data[2]
-            population = data[3]
+            consumption = data[2].replace(',', '.')
+            population = data[3].replace(',', '.')
 
-            household = Household(town, street, population, consumption)
-            households.append(household)
+            household = Household(town,street,consumption,population)
+
+            if population is not None:
+                households.append(household)
 
 def print_table():
     printing_data = []
 
     header = f"Typ | Liczba gospodarstw uwzględnionych | Całkowite zużycie w typie gospodarstw [m3] | Dominanta [m3] | Średnia [m3] | Odchylenie standardowe [m3] | Mediana [m3] "
-
 
     final_cell_length = []
     header_cells = header.split('|')
@@ -82,12 +82,10 @@ def print_table():
         cell_length = len(str(header_cells[i]))
         final_cell_length.append(cell_length)
 
-    reference = f"Gmina | {considered_households} ({round(considered_households / considered_households * 100, 2)}%) | {round(considered_consumption, 2)} ({round(considered_consumption / considered_consumption * 100, 2)}%) | {round(considered_mode, 2)} | {round(considered_mean,2)} | {round(considered_stdev,2)} | {round(considered_median,2)}"
-
+    reference = f"Gmina | {considered_households} ({round(considered_households / considered_households * 100, 2)}%) | {round(considered_consumption, 2)} ({round(considered_consumption / considered_consumption * 100, 2)}%) | {round(considered_mode, 2)} | {round(considered_mean, 2)} | {round(considered_stdev, 2)} | {round(considered_median, 2)}"
 
     reference_cells = reference.split('|')
     printing_data.append(reference_cells)
-
 
     for i in range(len(reference_cells)):
         cell_length = len(str(reference_cells[i]))
@@ -112,7 +110,8 @@ def print_table():
             line_to_print = line_to_print + current_cell + ' ' * (final_cell_length[j] - len(current_cell)) + '|'
         print(line_to_print)
         if i == 0:
-            print((sum(final_cell_length)+len(final_cell_length))*'-')
+            print((sum(final_cell_length) + len(final_cell_length)) * '-')
+
 
 def display_output():
     print(f"Ujęcie: {'miesięczne' if monthly else 'roczne'}")
@@ -120,11 +119,12 @@ def display_output():
     print(f"Całkowita liczba gospodarstw domowych: {len(households)}")
     print(f"Całkowita liczba mieszkańców w systemie: {commune_population}")
     print()
-    print(f"Wyliczenia uwzględniają {considered_households} gospodarstw domowych, zamieszkiwanych przez {considered_population} mieszkańców.")
+    print(
+        f"Wyliczenia uwzględniają {considered_households} gospodarstw domowych, zamieszkiwanych przez {considered_population} mieszkańców.")
     print()
     print(f"Prawdopodobna liczba gospodarstw domowych z nadmiarowym zużyciem wody: {sum(stealers_in_cities.values())}")
     print(f"Prawdopodobna liczba niewykazanych w umowach śmieciowych osób: {missing_people}")
-    print(f"Luka finansowa w systemie śmieciowym: {missing_money.replace(',',' ')} zł")
+    print(f"Luka finansowa w systemie śmieciowym: {missing_money.replace(',', ' ')} zł")
     print()
 
     print_table()
@@ -132,12 +132,13 @@ def display_output():
     print(f"Liczba nadmiarowego użycia w poszczególnych sołectwach")
     for city in stealers_in_cities:
         print_data = f"{city}: {stealers_in_cities[city]}"
-        print_data = print_data.replace("\"","")
-        print_data = print_data.replace('	','')
+        print_data = print_data.replace("\"", "")
+        print_data = print_data.replace('	', '')
         print(print_data)
 
     plot_histogram()
     plot_average_water_consumption_vs_household_population()
+
 
 def process_global_variables():
     global commune_population, commune_households, considered_mean, considered_population, considered_households, considered_consumption, household_types_data
@@ -151,45 +152,47 @@ def process_global_variables():
 
     for household in households:
         if type(household.population) == int:
-            commune_population += household.population            
+            commune_population += household.population
+
         if household.consider_flag:
             considered_consumption += household.consumption
             considered_population += household.population
             considered_households += 1
-            
+
             household_type = household.population
 
             if household_type not in household_types_data:
                 household_types_data[household_type] = {'count': 0, 'consumption': 0, 'averages': []}
 
             household_types_data[household_type]['count'] += 1
-            household_types_data[household_type]['consumption'] += household.consumption  
+            household_types_data[household_type]['consumption'] += household.consumption
 
             for _ in range(household_type):
                 household_types_data[household_type]['averages'].append(household.mean)
 
-
     for household_type in household_types_data:
         household_type_data = household_types_data[household_type]
-        
+
         household_type_data['stdev'] = stdev(household_types_data[household_type]['averages'])
         household_type_data['mode'] = mode(household_types_data[household_type]['averages'])
         household_type_data['mean'] = mean(household_types_data[household_type]['averages'])
         household_type_data['median'] = median(household_types_data[household_type]['averages'])
-        
+
         household_types_data[household_type] = household_type_data
 
     household_types_data = dict(sorted(household_types_data.items()))
-    
+
     considered_mean = considered_consumption / considered_population
     calculate_considered_mode()
     calculate_considered_stdev()
     calculate_considered_median()
 
+
 def mode(values):
     if type(values) != list:
         return None
     return max(set(values), key=values.count)
+
 
 def stdev(values):
     if type(values) != list or len(values) == 0:
@@ -197,14 +200,16 @@ def stdev(values):
     variance = sum((x - mean(values)) ** 2 for x in values) / len(values)
     return math.sqrt(variance)
 
+
 def median(values):
     values.sort()
     index = int(len(values) / 2)
     if type(index) != int:
         value1 = values[int(index)]
-        value2 = values[int(index+1)]
-        return value1+value2/2
+        value2 = values[int(index + 1)]
+        return value1 + value2 / 2
     return values[int(index)]
+
 
 def mean(values):
     if type(values) != list or len(values) == 0:
@@ -212,12 +217,13 @@ def mean(values):
     mean = sum(values) / len(values)
     return mean
 
+
 def calculate_considered_mode():
     global considered_mode
 
     if considered_population == 0:
         return 0
-    
+
     consumptions = []
     for household in households:
         if household.consider_flag:
@@ -226,33 +232,36 @@ def calculate_considered_mode():
 
     considered_mode = mode(consumptions)
 
+
 def calculate_considered_stdev():
     global considered_stdev
-    
+
     if considered_population == 0:
         return 0
-    
+
     consumptions = []
     for household in households:
         if household.consider_flag:
             for _ in range(household.population):
                 consumptions.append(household.mean)
-                
+
     considered_stdev = stdev(consumptions)
+
 
 def calculate_considered_median():
     global considered_median
-    
+
     if considered_population == 0:
         return 0
-    
+
     consumptions = []
     for household in households:
         if household.consider_flag:
             for _ in range(household.population):
                 consumptions.append(household.mean)
-                
+
     considered_median = median(consumptions)
+
 
 def count_overusage_by_cities():
     global households
@@ -266,6 +275,7 @@ def count_overusage_by_cities():
                 overusages_in_cities[household.town] = 1
 
     return overusages_in_cities
+
 
 def check_overusage(household):
     global overusage_threshold, considered_mean, considered_stdev, considered_mode_population, considered_median
@@ -288,20 +298,23 @@ def check_overusage(household):
     else:
         return False
 
+
 def count_missing_people():
     missing_people = 0
     for household in households:
-        local_household = household.copy()
-        while check_overusage(local_household): # nie usunąłem bo myślę o bardziej zaawansowanym liczeniu
+        local_household = Household(household.town,household.street,household.consumption,household.population)
+        while check_overusage(local_household):  # nie usunąłem bo myślę o bardziej zaawansowanym liczeniu
             local_household.population += 1
             local_household.mean = local_household.consumption / local_household.population
             missing_people += 1
     return missing_people
 
+
 def count_missing_money(number_of_missing_people):
     global fee, divider
     missing_money = number_of_missing_people * fee * 12 / divider
     return missing_money
+
 
 def plot_histogram():
     averages = []
@@ -309,7 +322,7 @@ def plot_histogram():
         if household.consider_flag:
             for _ in range(household.population):
                 averages.append(household.mean)
-                
+
     plt.hist(averages, bins=distribution_bins, color='blue', alpha=0.7)
     plt.title("Liczba osób wg zużycia wody")
     plt.xlabel(f"{'Miesięczne' if monthly else 'Roczne'} zużycie wody [m3] na osobę ")
@@ -320,6 +333,7 @@ def plot_histogram():
     plt.axvline(considered_median, color='yellow', linestyle='dashed', label='Mediana')
     plt.legend()
     plt.show()
+
 
 def plot_average_water_consumption_vs_household_population():
     added_labels = {
@@ -355,6 +369,7 @@ def plot_average_water_consumption_vs_household_population():
     plt.grid(axis='y', alpha=0.75)
     plt.show()
 
+
 # Load data from file
 load_data(data_csv)
 
@@ -367,4 +382,3 @@ stealers_in_cities = dict(sorted(stealers_in_cities.items(), key=lambda item: it
 
 # Output
 display_output()
-
