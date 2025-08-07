@@ -5,31 +5,6 @@ from Household import Household
 from HouseholdType import HouseholdType
 
 
-# Data file path
-data_csv = 'dane_raw.csv'
-
-# Set to True if the data is monthly, False if it is annual
-monthly = True
-
-# Method of stealing verification
-overusage_threshold = 'mean+stdev' # Options: 'sigma+average', 'sigma+mode', 'sigma+median', static_value
-
-# Rubbish handling fee
-fee = 38
-
-# Water consumption data processing parameters
-reject_negative_consumption_values = True
-reject_null_consumption_values = True
-reject_zero_consumption_values = True
-
-# Population data processing parameters
-reject_population_with_negative_consumption = True
-reject_population_with_zero_consumption = True
-reject_population_with_null_consumption = True
-
-# Display parameters
-distribution_bins = 120
-
 # Global variables for water consumption and population data
 commune_population = int
 commune_households = int
@@ -39,11 +14,6 @@ considered = HouseholdType("Gmina")
 household_types_data = []
 households = []
 missing_by_town = {}
-
-if monthly:
-    divider = 12
-else:
-    divider = 1
 
 
 def load_data(data_file):
@@ -110,7 +80,7 @@ def print_table():
             print((sum(final_cell_length)+len(final_cell_length))*'-')
 
 def display_output():
-    print(f"Ujęcie: {'miesięczne' if monthly else 'roczne'}")
+    print(f"Ujęcie: {'miesięczne' if config.monthly else 'roczne'}")
     print()
     print(f"Całkowita liczba gospodarstw domowych: {len(households)}")
     print(f"Całkowita liczba mieszkańców w systemie: {commune_population}")
@@ -212,17 +182,17 @@ def missing_in_towns():
     return missing_by_town
 
 def is_overusage(household):
-    global overusage_threshold, considered
+    global considered
 
-    if type(overusage_threshold) in (int, float):
-        threshold = overusage_threshold
-    elif overusage_threshold == 'mean':
+    if type(config.overusage_threshold) in (int, float):
+        threshold = config.overusage_threshold
+    elif config.overusage_threshold == 'mean':
         threshold = considered.mean
-    elif overusage_threshold == 'mode+stdev':
+    elif config.overusage_threshold == 'mode+stdev':
         threshold = considered.stdev + considered.mode
-    elif overusage_threshold == 'median+stdev':
+    elif config.overusage_threshold == 'median+stdev':
         threshold = considered.stdev + considered.median
-    elif overusage_threshold == 'mean+stdev':
+    elif config.overusage_threshold == 'mean+stdev':
         threshold = considered.stdev + considered.mean
     else:
         threshold = 0
@@ -243,13 +213,13 @@ def count_missing_people(household):
     return missing_people
 
 def count_missing_money(missing_count):
-    missing_money = missing_count * fee * 12 / divider
+    missing_money = missing_count * config.fee * 12 / config.divider
     return missing_money
 
 def plot_histogram():
-    plt.hist(considered.averages, bins=distribution_bins, color='blue', alpha=0.7)
+    plt.hist(considered.averages, bins=config.distribution_bins, color='blue', alpha=0.7)
     plt.title("Liczba osób wg zużycia wody")
-    plt.xlabel(f"{'Miesięczne' if monthly else 'Roczne'} zużycie wody [m3] na osobę ")
+    plt.xlabel(f"{'Miesięczne' if config.monthly else 'Roczne'} zużycie wody [m3] na osobę ")
     plt.ylabel("Liczba osób")
     plt.grid(axis='y', alpha=0.75)
     plt.axvline(considered.mean, color='red', linestyle='dashed', label='Średnia')
@@ -293,12 +263,12 @@ def plot_average_water_consumption_vs_household_population():
     plt.xlabel('Liczba mieszkańców w gospodarstwie domowym')
     plt.ylabel('Średnie zużycie wody [m3]')
     plt.grid(axis='y', alpha=0.75)
-    plt.axhline(y = overusage_threshold, color = "red", linestyle ="-")
+    plt.axhline(y = config.overusage_threshold, color = "red", linestyle ="-")
     plt.legend()
     plt.show()
 
 # Load data from file
-load_data(data_csv)
+load_data(config.data_csv)
 
 # Calculate statistics
 process_globals()

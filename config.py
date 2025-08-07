@@ -23,21 +23,6 @@ reject_population_with_null_consumption = True
 # Display parameters
 distribution_bins = 120
 
-# Global variables for water consumption and population data
-commune_population = int
-commune_households = int
-
-considered_households = int
-considered_population = int
-considered_consumption = float
-considered_mean = float
-considered_mode = float
-considered_median = float
-considered_stdev = float
-
-household_types_data = {}
-households = []
-
 if monthly:
     divider = 12
 else:
