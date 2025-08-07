@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import math
 import config
 from Household import Household
 from HouseholdType import HouseholdType
@@ -25,7 +24,6 @@ def load_data(data_file):
     for line in lines:
         line.replace(',','.')
         data = line.split(';')
-        
         if data[0] != '﻿Miejscowość':
             town = data[0]
             street = data[1]
@@ -125,11 +123,11 @@ def process_globals():
 
             household_type_id = household.population
 
-            if not any(household_type.type == household_type_id for household_type in household_types_data):
+            if not any(household_type.category == household_type_id for household_type in household_types_data):
                 household_types_data.append(HouseholdType(household_type_id))
 
             for index in range(len(household_types_data)):
-                if (household_types_data[index].type == household_type_id):
+                if household_types_data[index].category == household_type_id:
                     household_types_data[index].add_household(household)
 
     for index in range(len(household_types_data)):
@@ -137,37 +135,12 @@ def process_globals():
 
     considered.process()
 
-    household_types_data = sorted(household_types_data, key = lambda x: x.type)
+    household_types_data = sorted(household_types_data, key = lambda x: x.category)
 
-def mode(values):
-    if type(values) != list:
-        return None
-    return max(set(values), key=values.count)
 
-def stdev(values):
-    if type(values) != list or len(values) == 0:
-        return 0
-    variance = sum((x - mean(values)) ** 2 for x in values) / len(values)
-    return math.sqrt(variance)
-
-def median(values):
-    values.sort()
-    index = int(len(values) / 2)
-    if type(index) != int:
-        value1 = values[int(index)]
-        value2 = values[int(index + 1)]
-        return value1 + value2 / 2
-    return values[int(index)]
-
-def mean(values):
-    if type(values) != list or len(values) == 0:
-        return 0
-    mean = sum(values) / len(values)
-    return mean
 
 def missing_in_towns():
-    global households
-    missing_by_town = {}
+    global households, missing_by_town
 
     for household in households:
         missing = count_missing_people(household)
@@ -251,7 +224,7 @@ def plot_average_water_consumption_vs_household_population():
     x = []
     y = []
     for household_type in household_types_data:
-        x.append(household_type.type)
+        x.append(household_type.category)
         y.append(household_type.mean)
 
 

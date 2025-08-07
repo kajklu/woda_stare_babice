@@ -12,13 +12,7 @@ fee = 38
 
 # Water consumption data processing parameters
 reject_negative_consumption_values = True
-reject_null_consumption_values = True
 reject_zero_consumption_values = True
-
-# Population data processing parameters
-reject_population_with_negative_consumption = True
-reject_population_with_zero_consumption = True
-reject_population_with_null_consumption = True
 
 # Display parameters
 distribution_bins = 120

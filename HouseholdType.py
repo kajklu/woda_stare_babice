@@ -23,13 +23,13 @@ def median(values):
 def mean(values):
     if type(values) != list or len(values) == 0:
         return 0
-    mean = sum(values) / len(values)
-    return mean
+    average = sum(values) / len(values)
+    return average
 
 
 class HouseholdType:
-    def __init__(self, type):
-        self.type = type
+    def __init__(self, category):
+        self.category = category
         self.count = 0
         self.consumption = 0.0
         self.population = 0
@@ -39,10 +39,11 @@ class HouseholdType:
         self.stdev = float
         self.averages = []
     def __str__(self):
-        if type(self.type) == int:
-            return f"{self.type} os. w gospodarstwie"
-        elif type(self.type) == str:
+        if type(self.category) == int:
+            return f"{self.category} os. w gospodarstwie"
+        elif type(self.category) == str:
             return f"{self,type}"
+        return None
 
     def process(self):
         self.mean = mean(self.averages)
