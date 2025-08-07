@@ -21,12 +21,12 @@ class Household:
 
         self.consider_flag = True
         self.apply_globals()
-    def apply_globals(self,divider=config.divider, reject_zero_consumption_flag=config.reject_zero_consumption_values, reject_negative_consumption_flag = config.reject_negative_consumption_values):
+    def apply_globals(self):
 
-        if self.consumption < 0 and reject_negative_consumption_flag:
+        if self.consumption < 0 and config.reject_negative_consumption_values:
             self.consider_flag = False
-        elif self.consumption == 0 and reject_zero_consumption_flag:
+        elif self.consumption == 0 and config.reject_zero_consumption_values:
             self.consider_flag = False
 
-        self.consumption = self.consumption / divider
-        self.mean = self.mean / divider
+        self.consumption = self.consumption / config.divider
+        self.mean = self.mean / config.divider

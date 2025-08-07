@@ -1,4 +1,5 @@
 import math
+import config
 
 def mode(values):
     if type(values) != list:
@@ -38,6 +39,9 @@ class HouseholdType:
         self.median = float
         self.stdev = float
         self.averages = []
+        self.consumptions = []
+        self.households = []
+
     def __str__(self):
         if type(self.category) == int:
             return f"{self.category} os. w gospodarstwie"
@@ -46,6 +50,10 @@ class HouseholdType:
         return None
 
     def process(self):
+        self.cutoff()
+        self.consumption = sum(self.consumptions)
+        self.population = len(self.averages)
+
         self.mean = mean(self.averages)
         self.stdev = stdev(self.averages)
         self.mode = mode(self.averages)
@@ -53,7 +61,29 @@ class HouseholdType:
 
     def add_household(self, household):
         self.count += 1
-        self.population += household.population
-        self.consumption += household.consumption
         for _ in range(household.population):
             self.averages.append(household.mean)
+            self.averages = sorted(self.averages)
+        self.consumptions.append(household.consumption)
+        self.consumptions = sorted(self.consumptions)
+
+        self.households.append(household)
+        self.households = sorted(self.households, key=lambda x: x.consumption)
+        # Nie podobają mi się te sorty. Z matematyki wynika, że dane z jednego domostwa będą na jednej i drugiej liście
+        # w tym samym miejscu, ale no jakoś nie przemawia to do mnie.
+
+
+    def cutoff(self,lower_threshold=config.lower_cutoff_percentage,upper_threshold=config.upper_cutoff_percentage):
+        start_index_averages = round(len(self.averages)*lower_threshold/100)
+        end_index_averages = round(len(self.averages)*upper_threshold/100)
+
+        start_index_consumptions = round(len(self.consumptions)*lower_threshold/100)
+        end_index_consumptions = round(len(self.consumptions)*upper_threshold/100)
+
+        self.averages = self.averages[start_index_averages:end_index_averages]
+        self.consumptions = self.consumptions[start_index_consumptions:end_index_consumptions]
+        self.count = len(self.consumptions)
+
+        for i, household in enumerate(self.households):
+            if i < start_index_consumptions or i >= end_index_consumptions:
+                household.consumption = False

@@ -117,7 +117,7 @@ def process_globals():
     for household in households:
         if type(household.population) == int:
             commune_population += household.population
-            
+
         if household.consider_flag:
             considered.add_household(household)
 
@@ -245,6 +245,7 @@ load_data(config.data_csv)
 
 # Calculate statistics
 process_globals()
+
 missing_by_town = missing_in_towns()
 
 missing = 0
