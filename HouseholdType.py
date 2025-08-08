@@ -34,10 +34,12 @@ class HouseholdType:
         self.count = 0
         self.consumption = 0.0
         self.population = 0
-        self.mean = float
-        self.mode = float
-        self.median = float
-        self.stdev = float
+
+        self.mean = 0.0 # tu też zmieniam na 0.0, bo wyrzuca warningi
+        self.mode = 0.0
+        self.median = 0.0
+        self.stdev = 0.0
+
         self.averages = []
         self.consumptions = []
         self.households = []

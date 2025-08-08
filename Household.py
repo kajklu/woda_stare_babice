@@ -21,6 +21,7 @@ class Household:
 
         self.consider_flag = True
         self.apply_globals()
+
     def apply_globals(self):
 
         if self.consumption < 0 and config.reject_negative_consumption_values:

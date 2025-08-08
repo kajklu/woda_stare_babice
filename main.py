@@ -5,8 +5,8 @@ from HouseholdType import HouseholdType
 
 
 # Global variables for water consumption and population data
-commune_population = int
-commune_households = int
+commune_population = 0 # zmienię na wartości bo warningi wyrzuca
+commune_households = 0
 
 
 considered = HouseholdType("Gmina")
@@ -139,7 +139,6 @@ def process_globals():
     household_types_data = sorted(household_types_data, key = lambda x: x.category)
 
 
-
 def missing_in_towns():
     global households, missing_by_town
 
@@ -155,7 +154,7 @@ def missing_in_towns():
 
     return missing_by_town
 
-def is_overusage(household):
+def calculate_threshold():
     global considered
 
     if type(config.overusage_threshold) in (int, float):
@@ -171,6 +170,9 @@ def is_overusage(household):
     else:
         threshold = 0
 
+    return threshold
+
+def is_overusage(household, threshold = calculate_threshold()):
     if household.mean > threshold:
         return True
     else:
@@ -191,7 +193,8 @@ def count_missing_money(missing_count):
     return missing_money
 
 def plot_histogram():
-    plt.hist(considered.averages, bins=config.distribution_bins, color='blue', alpha=0.7)
+    bins = round(config.distribution_bins * (config.upper_cutoff_percentage-config.lower_cutoff_percentage)/100)
+    plt.hist(considered.averages, bins=bins, color='blue', alpha=0.7)
     plt.title("Liczba osób wg zużycia wody")
     plt.xlabel(f"{'Miesięczne' if config.monthly else 'Roczne'} zużycie wody [m3] na osobę ")
     plt.ylabel("Liczba osób")
@@ -241,6 +244,42 @@ def plot_average_water_consumption_vs_household_population():
     plt.legend()
     plt.show()
 
+def money_simulation(missing_people):
+    print()
+    print()
+    print("SYMULACJA WPŁYWÓW")
+
+    current_income = config.fee * commune_population * 12/config.divider
+    missing_money = count_missing_money(missing_people)
+    income_after_correction = current_income + missing_money
+    total_population = commune_population + missing_people
+    if config.monthly:
+        new_fee = current_income / total_population
+    else:
+        new_fee = current_income / total_population / 12
+
+    water_reckoning = 0
+    for household in households:
+        overconsumption = household.consumption - config.linear_reckoning_threshold
+        overconsumption = max(0, overconsumption)
+        water_reckoning += round(config.base_price + overconsumption * config.water_price,2)
+
+    current_income = f"{round(current_income,2):,}".replace(",", " ")
+    missing_money = f"{round(missing_money,2):,}".replace(",", " ")
+    income_after_correction = f"{round(income_after_correction,2):,}".replace(",", " ")
+    water_reckoning = f"{round(water_reckoning,2):,}".replace(",", " ")
+    new_fee = f"{round(new_fee,2):,}".replace(",", " ")
+    print(f"Aktualne wpływy z umów za wywóz śmieci: {current_income} zł")
+    print(f"Brakujące wpływy ze względu na niezgłoszenie osób: {missing_money} zł")
+    print(f"Wpływy po zgłoszeniu brakujących osób: {income_after_correction} zł")
+    print(f"Nowa opłata za wywóz śmieci bez zmian w budżecie: {new_fee} zł")
+
+
+
+    print()
+    print(f"Wpływy w przypadku przejścia na rozliczenie wodą: {water_reckoning} zł")
+
+
 # Load data from file
 load_data(config.data_csv)
 
@@ -259,3 +298,4 @@ missing_by_town = dict(sorted(missing_by_town.items(), key=lambda item: item[1][
 
 # Output
 display_output()
+money_simulation(missing)
