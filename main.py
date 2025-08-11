@@ -36,6 +36,24 @@ def load_data(data_file):
             if population is not None:
                 households.append(household)
 
+def apply_grouping(category):
+    if category in ('Gmina',1,2,3,4,5):
+        category = category
+    elif category in range(6,11):
+        category = '6-10'
+    elif category in range(11,26):
+        category = '11-25'
+    elif category in range(26,51):
+        category = '26-50'
+    elif category in range(51,101):
+        category = '51-100'
+    else:
+        category = '100 +'
+    return category
+
+
+
+
 def print_table():
     printing_data = []
 
@@ -143,6 +161,8 @@ def process_data():
             considered.add_household(household)
 
             household_type_id = household.population
+            if config.group_household_types:
+                household_type_id = apply_grouping(household_type_id)
 
             if not any(household_type.category == household_type_id for household_type in household_types_data):
                 household_types_data.append(HouseholdType(household_type_id))
@@ -156,13 +176,22 @@ def process_data():
 
     considered.process()
 
-    household_types_data = sorted(household_types_data, key = lambda x: x.category)
+    def sort_key(obj):
+        import re
+        # Szukamy pierwszej liczby w napisie
+        match = re.search(r'\d+', str(obj.category))
+        if match:
+            return int(match.group())  # liczba do sortowania
+        return float('inf')  # jeśli brak liczby, wrzucamy na koniec
+
+    household_types_data.sort(key=sort_key)
 
     missing_by_town = missing_in_towns()
 
     missing_people = 0
     for town in missing_by_town:
         missing_people += missing_by_town[town]['missing']
+
 
 
 def missing_in_towns():
@@ -303,6 +332,8 @@ load_data(config.data_csv)
 
 # Calculate statistics
 process_data()
+
+print(household_types_data)
 
 # Output
 display_output()

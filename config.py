@@ -4,6 +4,9 @@ data_csv = 'dane_raw.csv'
 # Decide whether to render graphs
 render_graphs = False
 
+# Group household types
+group_household_types = True
+
 # Set to True if the data is monthly, False if it is annual
 monthly = True
 

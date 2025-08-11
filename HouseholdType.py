@@ -45,10 +45,11 @@ class HouseholdType:
         self.households = []
 
     def __str__(self):
-        if type(self.category) == int:
+        if self.category == 'Gmina':
+            return 'Gmina'
+        elif type(self.category) == int or str:
             return f"{self.category} os. w gospodarstwie"
-        elif type(self.category) == str:
-            return f"{self,type}"
+
         return None
 
     def process(self):
