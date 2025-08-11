@@ -35,7 +35,7 @@ class HouseholdType:
         self.consumption = 0.0
         self.population = 0
 
-        self.mean = 0.0 # tu też zmieniam na 0.0, bo wyrzuca warningi
+        self.mean = 0.0
         self.mode = 0.0
         self.median = 0.0
         self.stdev = 0.0

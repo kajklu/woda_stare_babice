@@ -1,15 +1,16 @@
 import matplotlib.pyplot as plt
 import config
+from math import ceil
 from Household import Household
 from HouseholdType import HouseholdType
 
 
 # Global variables for water consumption and population data
-commune_population = 0 # zmienię na wartości bo warningi wyrzuca
+commune_population = 0
 commune_households = 0
-
-
+missing_people = 0
 considered = HouseholdType("Gmina")
+
 household_types_data = []
 households = []
 missing_by_town = {}
@@ -84,18 +85,22 @@ def display_output():
     print(f"Całkowita liczba mieszkańców w systemie: {commune_population}")
     print()
     print(f"Wyliczenia uwzględniają {considered.count} gospodarstw domowych, zamieszkiwanych przez {considered.population} mieszkańców.")
-    print()
 
+    print()
+    print()
+    print("DANE STATYSTYCZNE")
+    print('------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------')
+    print_table()
+
+    print()
+    print()
+    print("LICZBA NADMIERNYCH ZUŻYĆ WODY")
+    print('------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------')
     count = 0
     for town in missing_by_town:
         count += missing_by_town[town]['count']
-
     print(f"Prawdopodobna liczba gospodarstw domowych z nadmiarowym zużyciem wody: {count}")
-    print(f"Prawdopodobna liczba niewykazanych w umowach śmieciowych osób: {missing}")
-    print(f"Luka finansowa w systemie śmieciowym: {missing_money.replace(',',' ')} zł")
-    print()
-
-    print_table()
+    print(f"Prawdopodobna liczba niewykazanych w umowach śmieciowych osób: {missing_people}")
     print()
     print(f"Liczba nadmiarowego użycia w poszczególnych sołectwach")
     for town in missing_by_town:
@@ -104,12 +109,27 @@ def display_output():
         print_data = print_data.replace('	','')
         print(print_data)
 
+
+    print()
+    print()
+    print("ANALIZA PIENIĘŻNA")
+    print('------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------')
+    money_analysis()
+
+
+
     if config.render_graphs:
         plot_histogram()
         plot_average_water_consumption_vs_household_population()
 
-def process_globals():
-    global commune_population, commune_households, considered, household_types_data
+
+def process_data():
+    global commune_population, \
+        commune_households, \
+        considered, \
+        household_types_data, \
+        missing_by_town, \
+        missing_people \
 
     commune_households = len(households)
     commune_population = 0
@@ -138,19 +158,28 @@ def process_globals():
 
     household_types_data = sorted(household_types_data, key = lambda x: x.category)
 
+    missing_by_town = missing_in_towns()
+
+    missing_people = 0
+    for town in missing_by_town:
+        missing_people += missing_by_town[town]['missing']
+
 
 def missing_in_towns():
     global households, missing_by_town
 
     for household in households:
-        missing = count_missing_people(household)
+        if household.consider_flag:
+            missing_in_household = count_missing_people(household)
 
-        if missing > 0:
-            if household.town in missing_by_town:
-                missing_by_town[household.town]['count'] += 1
-                missing_by_town[household.town]['missing'] += missing
-            else:
-                missing_by_town[household.town] = {'count': 1, 'missing': missing}
+            if missing_in_household > 0:
+                if household.town in missing_by_town:
+                    missing_by_town[household.town]['count'] += 1
+                    missing_by_town[household.town]['missing'] += missing_in_household
+                else:
+                    missing_by_town[household.town] = {'count': 1, 'missing': missing_in_household}
+
+    missing_by_town = dict(sorted(missing_by_town.items(), key=lambda item: item[1]['count'], reverse=True))
 
     return missing_by_town
 
@@ -169,7 +198,6 @@ def calculate_threshold():
         threshold = considered.stdev + considered.mean
     else:
         threshold = 0
-
     return threshold
 
 def is_overusage(household, threshold = calculate_threshold()):
@@ -178,19 +206,12 @@ def is_overusage(household, threshold = calculate_threshold()):
     else:
         return False
 
-
 def count_missing_people(household):
-    missing_people = 0
-    local_household = Household(household.town,household.street,household.consumption*config.divider,household.population)
-    while is_overusage(local_household):  # nie usunąłem bo myślę o bardziej zaawansowanym liczeniu
-        local_household.population += 1
-        local_household.mean = local_household.consumption / local_household.population
-        missing_people += 1
-    return missing_people
-
-def count_missing_money(missing_count):
-    missing_money = missing_count * config.fee * 12 / config.divider
-    return missing_money
+    missing_in_household = 0
+    threshold = calculate_threshold()
+    if is_overusage(household, threshold):
+        missing_in_household = ceil(household.consumption/threshold - household.population)
+    return missing_in_household
 
 def plot_histogram():
     bins = round(config.distribution_bins * (config.upper_cutoff_percentage-config.lower_cutoff_percentage)/100)
@@ -244,13 +265,10 @@ def plot_average_water_consumption_vs_household_population():
     plt.legend()
     plt.show()
 
-def money_simulation(missing_people):
-    print()
-    print()
-    print("SYMULACJA WPŁYWÓW")
+def money_analysis():
 
-    current_income = config.fee * commune_population * 12/config.divider
-    missing_money = count_missing_money(missing_people)
+    current_income = config.fee * commune_population * 12 / config.divider
+    missing_money = missing_people * config.fee * 12 / config.divider
     income_after_correction = current_income + missing_money
     total_population = commune_population + missing_people
     if config.monthly:
@@ -284,18 +302,7 @@ def money_simulation(missing_people):
 load_data(config.data_csv)
 
 # Calculate statistics
-process_globals()
-
-missing_by_town = missing_in_towns()
-
-missing = 0
-for town in missing_by_town:
-    missing += missing_by_town[town]['missing']
-
-missing_money = f"{count_missing_money(missing):,}"
-
-missing_by_town = dict(sorted(missing_by_town.items(), key=lambda item: item[1]['count'], reverse=True))
+process_data()
 
 # Output
 display_output()
-money_simulation(missing)
