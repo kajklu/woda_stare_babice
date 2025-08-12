@@ -28,6 +28,24 @@ def mean(values):
     return average
 
 
+def covariance(x, y):
+    if type(x) != list or type(y) != list or len(x) != len(y):
+        return 0
+    mean_x = mean(x)
+    mean_y = mean(y)
+    cov = sum((x[i] - mean_x) * (y[i] - mean_y) for i in range(len(x))) / len(x)
+    return cov
+
+def pearson_correlation(x, y):
+    if type(x) != list or type(y) != list or len(x) != len(y):
+        return 0
+    cov = covariance(x, y)
+    stdev_x = stdev(x)
+    stdev_y = stdev(y)
+    if stdev_x == 0 or stdev_y == 0:
+        return 0
+    return cov / (stdev_x * stdev_y)
+
 class HouseholdType:
     def __init__(self, category):
         self.category = category

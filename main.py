@@ -1,7 +1,11 @@
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import config
 from math import ceil
 from Household import Household
+from HouseholdType import mean
+from HouseholdType import covariance
+from HouseholdType import pearson_correlation
 from HouseholdType import HouseholdType
 
 
@@ -256,42 +260,32 @@ def plot_histogram():
     plt.show()
 
 def plot_average_water_consumption_vs_household_population():
-    added_labels = {
-        'Powyżej normy': False,
-        'W normie': False
-    }
-
-    for household in households:
-        if household.consider_flag:
-            population = household.population
-            mean = household.mean
-
-            if is_overusage(household):
-                label = 'Powyżej normy' if not added_labels['Powyżej normy'] else None
-                added_labels['Powyżej normy'] = True
-                plt.plot(population, mean, 'o', markersize=3, color='red', label=label)
-            else:
-                label = 'W normie' if not added_labels['W normie'] else None
-                added_labels['W normie'] = True
-                plt.plot(population, mean, 'o', markersize=3, color='blue', label=label)
-
     x = []
     y = []
     for household_type in household_types_data:
         x.append(household_type.category)
         y.append(household_type.mean)
 
-
     plt.plot(x, y, '-', markersize=3, color='orange', label='Średnie zużycie wody dla danej liczby mieszkańców')
 
+    for household_type in household_types_data:
+        for mean in household_type.averages:
+            if mean > calculate_threshold():
+                plt.plot(str(household_type.category), mean, 'o', markersize=3, color='red')
+            else:
+                plt.plot(str(household_type.category), mean, 'o', markersize=3, color='blue')
 
 
-    plt.title('Średnie zużycie wody w zależności od liczby mieszkańców w gospodarstwie domowym')
+    #plt.title('Średnie zużycie wody w zależności od liczby mieszkańców w gospodarstwie domowym')
     plt.xlabel('Liczba mieszkańców w gospodarstwie domowym')
     plt.ylabel('Średnie zużycie wody [m3]')
     plt.grid(axis='y', alpha=0.75)
     plt.axhline(y = config.overusage_threshold, color = "red", linestyle ="-")
-    plt.legend()
+    legend_elements = [ Line2D([0], [0], color='orange', label='Średnie zużycie wody', markersize = 3),
+                        Line2D([0], [0], color='red', label='Próg zużycia', markersize=3),
+                        Line2D([0], [0], marker='o', color='w', label='Powyżej progu', markerfacecolor='r', markersize=10),
+                        Line2D([0], [0], marker='o', color='w', label='Poniżej progu', markerfacecolor='b', markersize=10)]
+    plt.legend(handles=legend_elements, loc ='upper right')
     plt.show()
 
 def money_analysis():
@@ -333,7 +327,27 @@ load_data(config.data_csv)
 # Calculate statistics
 process_data()
 
-print(household_types_data)
+x = []
+y = []
+
+for household in households:
+    if household.consider_flag:
+        x.append(household.population)
+        y.append(household.mean)
+
+household_average_population = mean(x)
+print(f"average pop: {household_average_population}")
+covariance_value = covariance(x, y)
+print(f"xy: {covariance_value}")
+covariance_value = covariance(x, x)
+print(f"xx: {covariance_value}")
+covariance_value = covariance(y, y)
+print(f"yy: {covariance_value}")
+p_correlation = pearson_correlation(x, y)
+print(f"Pearson correlation: {p_correlation}")
 
 # Output
 display_output()
+
+plot_average_water_consumption_vs_household_population()
+plot_histogram()
