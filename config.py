@@ -11,7 +11,7 @@ group_household_types = True
 monthly = True
 
 # Method of stealing verification
-overusage_threshold = 4 # Options: 'sigma+average', 'sigma+mode', 'sigma+median', static_value
+overusage_threshold = 4.5 # Options: 'sigma+average', 'sigma+mode', 'sigma+median', static_value
 
 # Rubbish handling fee
 fee = 38
@@ -21,15 +21,15 @@ reject_negative_consumption_values = True
 reject_zero_consumption_values = True
 
 # Display parameters
-distribution_bins = 120
+distribution_bins = 200
 
 # What should be the range of data to be considered
 lower_cutoff_percentage = 0
 upper_cutoff_percentage = 100
 
 # Money simulation parameters
-linear_reckoning_threshold = 2.67 # value of usage after which household pays linearly per water consumption
-water_price = 14
+linear_reckoning_threshold = 3 # value of usage after which household pays linearly per water consumption
+water_price = 12
 base_price = 38
 
 

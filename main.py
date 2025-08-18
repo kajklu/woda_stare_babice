@@ -118,19 +118,22 @@ def display_output():
     print()
     print("LICZBA NADMIERNYCH ZUŻYĆ WODY")
     print('------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------')
+    global missing_people
     count = 0
-    for town in missing_by_town:
-        count += missing_by_town[town]['count']
-    print(f"Prawdopodobna liczba gospodarstw domowych z nadmiarowym zużyciem wody: {count}")
-    print(f"Prawdopodobna liczba niewykazanych w umowach śmieciowych osób: {missing_people}")
-    print()
+
     print(f"Liczba nadmiarowego użycia w poszczególnych sołectwach")
     for town in missing_by_town:
-        print_data = f"{town}: {missing_by_town[town]['count']} gospodarstw, {missing_by_town[town]['missing']} osób"
+        household_count = missing_by_town[town]['count']
+        missing_people_in_town = missing_by_town[town]['missing']
+        print_data = f"{town}: {household_count} gospodarstw, {missing_people_in_town} osób"
         print_data = print_data.replace("\"","")
         print_data = print_data.replace('	','')
         print(print_data)
-
+        count += household_count
+        missing_people += missing_people_in_town
+    print(f"Prawdopodobna liczba gospodarstw domowych z nadmiarowym zużyciem wody: {count}")
+    print(f"Prawdopodobna liczba niewykazanych w umowach śmieciowych osób: {missing_people}")
+    print()
 
     print()
     print()
@@ -192,10 +195,6 @@ def process_data():
 
     missing_by_town = missing_in_towns()
 
-    missing_people = 0
-    for town in missing_by_town:
-        missing_people += missing_by_town[town]['missing']
-
 
 
 def missing_in_towns():
@@ -247,10 +246,17 @@ def count_missing_people(household):
     return missing_in_household
 
 def plot_histogram():
+    plt.rcParams['font.family'] = 'Times New Roman'
+    plt.rcParams['font.size'] = 24
+    plt.rcParams['axes.titlesize'] = 24
+    plt.rcParams['axes.labelsize'] = 20
+    plt.rcParams['legend.fontsize'] = 16
+
+
     bins = round(config.distribution_bins * (config.upper_cutoff_percentage-config.lower_cutoff_percentage)/100)
     plt.hist(considered.averages, bins=bins, color='blue', alpha=0.7)
-    plt.title("Liczba osób wg zużycia wody")
-    plt.xlabel(f"{'Miesięczne' if config.monthly else 'Roczne'} zużycie wody [m3] na osobę ")
+    #plt.title("Liczba osób wg zużycia wody")
+    plt.xlabel(f"{'Miesięczne' if config.monthly else 'Roczne'} zużycie wody [m³] na osobę ")
     plt.ylabel("Liczba osób")
     plt.grid(axis='y', alpha=0.75)
     plt.axvline(considered.mean, color='red', linestyle='dashed', label='Średnia')
@@ -260,6 +266,11 @@ def plot_histogram():
     plt.show()
 
 def plot_average_water_consumption_vs_household_population():
+    plt.rcParams['font.family'] = 'Times New Roman'
+    plt.rcParams['font.size'] = 24
+    plt.rcParams['axes.titlesize'] = 24
+    plt.rcParams['axes.labelsize'] = 20
+    plt.rcParams['legend.fontsize'] = 16
     x = []
     y = []
     for household_type in household_types_data:
@@ -278,7 +289,7 @@ def plot_average_water_consumption_vs_household_population():
 
     #plt.title('Średnie zużycie wody w zależności od liczby mieszkańców w gospodarstwie domowym')
     plt.xlabel('Liczba mieszkańców w gospodarstwie domowym')
-    plt.ylabel('Średnie zużycie wody [m3]')
+    plt.ylabel('Średnie zużycie wody [m³]')
     plt.grid(axis='y', alpha=0.75)
     plt.axhline(y = config.overusage_threshold, color = "red", linestyle ="-")
     legend_elements = [ Line2D([0], [0], color='orange', label='Średnie zużycie wody', markersize = 3),
@@ -303,8 +314,14 @@ def money_analysis():
     for household in households:
         overconsumption = household.consumption - config.linear_reckoning_threshold
         overconsumption = max(0, overconsumption)
-        water_reckoning += round(config.base_price + overconsumption * config.water_price,2)
+        water_reckoning += overconsumption * config.water_price
+        if config.linear_reckoning_threshold > 0:
+            water_reckoning += config.base_price
 
+    water_reckoning = round(water_reckoning,2)
+
+    water_reckoning_vs_current_income = water_reckoning - current_income
+    water_reckoning_vs_current_income = f"{round(water_reckoning_vs_current_income, 2):,}".replace(",", " ")
     current_income = f"{round(current_income,2):,}".replace(",", " ")
     missing_money = f"{round(missing_money,2):,}".replace(",", " ")
     income_after_correction = f"{round(income_after_correction,2):,}".replace(",", " ")
@@ -315,10 +332,9 @@ def money_analysis():
     print(f"Wpływy po zgłoszeniu brakujących osób: {income_after_correction} zł")
     print(f"Nowa opłata za wywóz śmieci bez zmian w budżecie: {new_fee} zł")
 
-
-
     print()
     print(f"Wpływy w przypadku przejścia na rozliczenie wodą: {water_reckoning} zł")
+    print(f"Zysk z zastosowania rozliczania wodą: {water_reckoning_vs_current_income} zł")
 
 
 # Load data from file
@@ -348,6 +364,3 @@ print(f"Pearson correlation: {p_correlation}")
 
 # Output
 display_output()
-
-plot_average_water_consumption_vs_household_population()
-plot_histogram()
