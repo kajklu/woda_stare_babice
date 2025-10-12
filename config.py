@@ -8,10 +8,10 @@ render_graphs = False
 group_household_types = True
 
 # Set to True if the data is monthly, False if it is annual
-monthly = True
+monthly = False
 
 # Method of stealing verification
-overusage_threshold = 4.5 # Options: 'sigma+average', 'sigma+mode', 'sigma+median', static_value
+monthly_overusage_threshold = 4.5 # Options: 'sigma+average', 'sigma+mode', 'sigma+median', static_value
 
 # Rubbish handling fee
 fee = 38

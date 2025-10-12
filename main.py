@@ -61,7 +61,7 @@ def apply_grouping(category):
 def print_table():
     printing_data = []
 
-    header = f"Typ | Liczba gospodarstw uwzględnionych | Liczba osób | Całkowite zużycie w typie gospodarstw [m3] | Dominanta [m3] | Średnia [m3] | Odchylenie standardowe [m3] | Mediana [m3] "
+    header = f"Typ | Liczba gospodarstw uwzględnionych | Liczba osób | Całkowite zużycie w typie gospodarstw [m³] | Dominanta [m³] | Średnia [m³] | Odchylenie standardowe [m³] | Mediana [m³] "
 
     final_cell_length = []
     header_cells = header.split('|')
@@ -112,6 +112,25 @@ def display_output():
     print()
     print("DANE STATYSTYCZNE")
     print('------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------')
+    x = []
+    y = []
+
+    for household in households:
+        if household.consider_flag:
+            x.append(household.population)
+            y.append(household.mean)
+
+    household_average_population = mean(x)
+    print(f"Średnia populacja: {household_average_population}")
+    covariance_value = covariance(x, y)
+    print(f"Kowariancja xy: {covariance_value}")
+    covariance_value = covariance(x, x)
+    print(f"Kowariancja xx: {covariance_value}")
+    covariance_value = covariance(y, y)
+    print(f"Kowariancja yy: {covariance_value}")
+    p_correlation = pearson_correlation(x, y)
+    print(f"Korelacja: {p_correlation}")
+    print()
     print_table()
 
     print()
@@ -131,6 +150,7 @@ def display_output():
         print(print_data)
         count += household_count
         missing_people += missing_people_in_town
+    print()
     print(f"Prawdopodobna liczba gospodarstw domowych z nadmiarowym zużyciem wody: {count}")
     print(f"Prawdopodobna liczba niewykazanych w umowach śmieciowych osób: {missing_people}")
     print()
@@ -218,16 +238,16 @@ def missing_in_towns():
 def calculate_threshold():
     global considered
 
-    if type(config.overusage_threshold) in (int, float):
-        threshold = config.overusage_threshold
-    elif config.overusage_threshold == 'mean':
-        threshold = considered.mean
-    elif config.overusage_threshold == 'mode+stdev':
-        threshold = considered.stdev + considered.mode
-    elif config.overusage_threshold == 'median+stdev':
-        threshold = considered.stdev + considered.median
-    elif config.overusage_threshold == 'mean+stdev':
-        threshold = considered.stdev + considered.mean
+    if type(config.monthly_overusage_threshold * 12 / config.divider) in (int, float):
+        threshold = config.monthly_overusage_threshold * 12 / config.divider
+    elif config.monthly_overusage_threshold== 'mean':
+        threshold = considered.mean* 12 / config.divider
+    elif config.monthly_overusage_threshold  == 'mode+stdev':
+        threshold = (considered.stdev + considered.mode) * 12 / config.divider
+    elif config.monthly_overusage_threshold  == 'median+stdev':
+        threshold = (considered.stdev + considered.median) * 12 / config.divider
+    elif config.monthly_overusage_threshold  == 'mean+stdev':
+        threshold = (considered.stdev + considered.mean) * 12 / config.divider
     else:
         threshold = 0
     return threshold
@@ -255,7 +275,7 @@ def plot_histogram():
 
     bins = round(config.distribution_bins * (config.upper_cutoff_percentage-config.lower_cutoff_percentage)/100)
     plt.hist(considered.averages, bins=bins, color='blue', alpha=0.7)
-    #plt.title("Liczba osób wg zużycia wody")
+    #plt.title ("Liczba osób wg zużycia wody")
     plt.xlabel(f"{'Miesięczne' if config.monthly else 'Roczne'} zużycie wody [m³] na osobę ")
     plt.ylabel("Liczba osób")
     plt.grid(axis='y', alpha=0.75)
@@ -287,11 +307,11 @@ def plot_average_water_consumption_vs_household_population():
                 plt.plot(str(household_type.category), mean, 'o', markersize=3, color='blue')
 
 
-    #plt.title('Średnie zużycie wody w zależności od liczby mieszkańców w gospodarstwie domowym')
+    #plt.title ('Średnie zużycie wody w zależności od liczby mieszkańców w gospodarstwie domowym')
     plt.xlabel('Liczba mieszkańców w gospodarstwie domowym')
     plt.ylabel('Średnie zużycie wody [m³]')
     plt.grid(axis='y', alpha=0.75)
-    plt.axhline(y = config.overusage_threshold, color = "red", linestyle ="-")
+    plt.axhline(y = config.monthly_overusage_threshold * 12 / config.divider, color = "red", linestyle ="-")
     legend_elements = [ Line2D([0], [0], color='orange', label='Średnie zużycie wody', markersize = 3),
                         Line2D([0], [0], color='red', label='Próg zużycia', markersize=3),
                         Line2D([0], [0], marker='o', color='w', label='Powyżej progu', markerfacecolor='r', markersize=10),
@@ -312,11 +332,11 @@ def money_analysis():
 
     water_reckoning = 0
     for household in households:
-        overconsumption = household.consumption - config.linear_reckoning_threshold
+        overconsumption = household.consumption - config.linear_reckoning_threshold*12/config.divider
         overconsumption = max(0, overconsumption)
         water_reckoning += overconsumption * config.water_price
         if config.linear_reckoning_threshold > 0:
-            water_reckoning += config.base_price
+            water_reckoning += config.base_price*12/config.divider
 
     water_reckoning = round(water_reckoning,2)
 
@@ -333,6 +353,8 @@ def money_analysis():
     print(f"Nowa opłata za wywóz śmieci bez zmian w budżecie: {new_fee} zł")
 
     print()
+    print(f"Stawka za metraż wody: {config.water_price} zł")
+    print(f"Próg rozliczania liniowego: {config.linear_reckoning_threshold} m³")
     print(f"Wpływy w przypadku przejścia na rozliczenie wodą: {water_reckoning} zł")
     print(f"Zysk z zastosowania rozliczania wodą: {water_reckoning_vs_current_income} zł")
 
@@ -343,24 +365,7 @@ load_data(config.data_csv)
 # Calculate statistics
 process_data()
 
-x = []
-y = []
 
-for household in households:
-    if household.consider_flag:
-        x.append(household.population)
-        y.append(household.mean)
-
-household_average_population = mean(x)
-print(f"average pop: {household_average_population}")
-covariance_value = covariance(x, y)
-print(f"xy: {covariance_value}")
-covariance_value = covariance(x, x)
-print(f"xx: {covariance_value}")
-covariance_value = covariance(y, y)
-print(f"yy: {covariance_value}")
-p_correlation = pearson_correlation(x, y)
-print(f"Pearson correlation: {p_correlation}")
 
 # Output
 display_output()
