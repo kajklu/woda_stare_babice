@@ -2,7 +2,7 @@
 data_csv = 'dane_raw.csv'
 
 # Decide whether to render graphs
-render_graphs = True
+render_graphs = False
 
 # Group household types
 group_household_types = True
@@ -19,6 +19,10 @@ fee = 38
 # Water consumption data processing parameters
 reject_negative_consumption_values = True
 reject_zero_consumption_values = True
+
+use_town_hall_averages = False
+
+reject_non_yearly_consumption_values = False
 
 # Display parameters
 distribution_bins = 200

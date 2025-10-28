@@ -2,7 +2,7 @@ import config
 from math import ceil
 
 class Household:
-    def __init__(self,town,street,consumption,population,number=None):
+    def __init__(self,town,street,table_consumption,town_hall_average,population,number=None):
         self.number = number
         self.town = town
         self.street = street
@@ -10,15 +10,14 @@ class Household:
             self.population = int(population)
         except ValueError:
             self.population = 0
-        try:
-            self.consumption = float(consumption)
-        except ValueError:
-            self.consumption = 0
 
-        try:
-            self.mean = self.consumption / self.population if self.population != 0 else 0
-        except TypeError:
-            self.mean = 0
+        self.table_consumption = table_consumption
+        self.town_hall_average = town_hall_average
+
+
+        self.consumption = 0.0
+        self.mean = 0.0
+
 
         self.consider_flag = True
         self.apply_globals()
@@ -26,14 +25,31 @@ class Household:
         self.apply_grouping()
 
     def apply_globals(self):
+        if config.use_town_hall_averages:
+            self.consumption = self.town_hall_average * self.population * 12
+        else:
+            self.consumption = self.table_consumption
 
-        if self.consumption < 0 and config.reject_negative_consumption_values:
-            self.consider_flag = False
-        elif self.consumption == 0 and config.reject_zero_consumption_values:
-            self.consider_flag = False
+        if config.reject_non_yearly_consumption_values:
+            try:
+                if round(self.table_consumption/self.town_hall_average/self.population) != 12:
+                    self.consider_flag = False
+            except ZeroDivisionError:
+                pass
+
+        if self.consider_flag:
+            if self.consumption < 0 and config.reject_negative_consumption_values:
+                self.consider_flag = False
+            elif self.consumption == 0 and config.reject_zero_consumption_values:
+                self.consider_flag = False
 
         self.consumption = self.consumption / config.divider
-        self.mean = self.mean / config.divider
+        try:
+            self.mean = self.consumption / self.population if self.population != 0 else 0
+        except TypeError:
+            self.mean = 0
+        except ZeroDivisionError:
+            self.mean = 0
 
     def is_overusage(self,threshold):
         if self.mean > threshold:

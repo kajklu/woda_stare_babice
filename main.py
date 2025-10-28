@@ -1,3 +1,5 @@
+import time
+
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import config
@@ -32,11 +34,14 @@ def load_data(data_file):
 
     commune_population = 0
     commune_households = 0
-    considered = HouseholdType("Gmina")
-    households_grouped = {}
     missing_people = 0
+
+    considered = HouseholdType("Gmina")
+
+    households_grouped = {}
     households_not_grouped = {}
     households = []
+
     print("Wczytywanie danych z pliku...")
     with open(data_file, "r", encoding="utf-8") as file:
         lines = file.readlines()
@@ -49,15 +54,16 @@ def load_data(data_file):
         if data[0] != '﻿Miejscowość':
             town = data[0]
             street = data[1]
-            consumption = data[2]
+            consumption = data[2].replace(',', '.')
             population = int(data[3].replace(',', '.'))
             average_consumption = data[4].replace(',', '.').replace("\n","")
 
-            if average_consumption != '' and average_consumption is not None:
-                average_consumption = float(average_consumption)
-                consumption = 12 * population * average_consumption
+            if average_consumption == '' or average_consumption is None:
+                average_consumption = 0.0
+            if consumption == '' or consumption is None:
+                consumption = 0.0
 
-            household = Household(town,street,consumption,population)
+            household = Household(town,street,float(consumption),float(average_consumption),population)
 
             if population is not None:
                 households.append(household)
@@ -100,6 +106,7 @@ def load_data(data_file):
         return float('inf')  # jeśli brak liczby, wrzucamy na koniec
 
     households_grouped= dict(sorted(households_grouped.items(), key=lambda item: sort_key(item[1])))
+    households_not_grouped = dict(sorted(households_not_grouped.items(), key=lambda item: sort_key(item[1])))
 
 
 def display_output():
@@ -192,13 +199,13 @@ def display_output():
         print_data = print_data.replace("\"","")
         print_data = print_data.replace('	','')
         print(print_data)
-        for street in missing_statistics[town]['streets']:
-            street_household_count = missing_statistics[town]['streets'][street]['count']
-            street_missing_people = missing_statistics[town]['streets'][street]['missing']
-            print_data = f"    {street}: {street_household_count} gospodarstw, {street_missing_people} osób"
-            print_data = print_data.replace("\"","")
-            print_data = print_data.replace('	','')
-            print(print_data)
+        # for street in missing_statistics[town]['streets']:
+        #     street_household_count = missing_statistics[town]['streets'][street]['count']
+        #     street_missing_people = missing_statistics[town]['streets'][street]['missing']
+        #     print_data = f"    {street}: {street_household_count} gospodarstw, {street_missing_people} osób"
+        #     print_data = print_data.replace("\"","")
+        #     print_data = print_data.replace('	','')
+        #     print(print_data)
         count += household_count
         missing_people += missing_people_in_town
     print()
@@ -249,6 +256,7 @@ def calculate_threshold(threshold = config.monthly_overusage_threshold):
     return threshold
 
 def find_missing_people(town = None, street = None, number=None, threshold=calculate_threshold()):
+    print(f"Obliczanie brakujących osób przy progu zużycia: {round(threshold,2)} m³")
     global missing_statistics, households
     missing_statistics = {}
     for household in households:
@@ -381,10 +389,26 @@ def money_analysis():
 
     return result
 
+def reload():
+    for household in households:
+        household.apply_globals()
+    for household_type in households_grouped.values():
+        household_type.process()
+    for household_type in households_not_grouped.values():
+        household_type.process()
+
 
 # Load data from file
+start = time.time()
 load_data(config.data_csv)
 find_missing_people()
+end = time.time()
+print(f"Czas pierwszego uruchomienia: {round(end - start, 2)} sekund")
 
-# Output
 display_output()
+start = time.time()
+print("Przeładowanie")
+reload()
+end = time.time()
+print(f"Czas przeładowania: {round(end - start, 2)} sekund")
+# Output
