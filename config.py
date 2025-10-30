@@ -1,14 +1,15 @@
+import os
 # Data file path
-data_csv = 'dane_raw.csv'
+data_csv = os.path.join(os.path.dirname(__file__), "dane_raw.csv")
 
 # Decide whether to render graphs
 render_graphs = False
 
 # Group household types
-group_household_types = True
+group_household_types = False
 
 # Set to True if the data is monthly, False if it is annual
-monthly = True
+monthly = False
 
 # Method of stealing verification
 monthly_overusage_threshold = 4.5 # Options: 'sigma+average', 'sigma+mode', 'sigma+median', static_value
@@ -36,12 +37,8 @@ linear_reckoning_threshold = 3 # value of usage after which household pays linea
 water_price = 12
 base_price = 38
 
-
-
-if monthly:
-    divider = 12
-else:
-    divider = 1
+def get_divider():
+    return 12 if monthly else 1
 
 if lower_cutoff_percentage > upper_cutoff_percentage:
     raise ValueError("Dolny próg odcięcia musi być mniejszy niż górny!")

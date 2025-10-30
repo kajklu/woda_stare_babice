@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pl">
+<div>
+<form action="/" method="POST">
+    <input type="checkbox"
+           id="group_households"
+           name="group_households"
+           value="True"
+           {% if config.group_household_types %}checked{% endif %}>
+    <label for="group_households">Grupuj typy gospodarstw domowych</label><br>
+    <input type="checkbox"
+           id="use_town_hall_calculations"
+           name="use_town_hall_calculations"
+           value="True"
+           {% if config.use_town_hall_averages %}checked{% endif %}>
+    <label for="use_town_hall_calculations">Używaj wyliczeń Urzędu</label><br>
+    <input type="checkbox"
+           id="reject_non_yearly_consumption_values"
+           name="reject_non_yearly_consumption_values"
+           value="True"
+           {% if config.reject_non_yearly_consumption_values %}checked{% endif %}>
+    <label for="reject_non_yearly_consumption_values">Odrzuć dane niebędące w ujęciu rocznym</label><br><br>
+    Ujęcie danych:<br>
+    <input type="radio" id="monthly" name="monthly" value="True" {% if config.monthly %}checked{% endif %}>
+    <label for="monthly">Miesięczne</label><br>
+
+    <input type="radio" id="yearly" name="monthly" value="False" {% if not config.monthly %}checked{% endif %}>
+    <label for="yearly">Roczne</label><br>
+
+<div class="mb-3">
+  <label for="monthly_overusage_threshold" class="form-label"><br>
+    Miesięczny próg nadmiernego zużycia wody [m³]
+  </label>
+  <input type="number"
+         id="monthly_overusage_threshold"
+         name="monthly_overusage_threshold"
+         class="form-control"
+         value="{{ config.monthly_overusage_threshold | default(4.5) }}"
+         step="0.1"
+         min="0">
+</div>
+
+    <button type="submit">Przeładuj</button>
+</form>
+<h1>Dane statystyczne</h1>
+<table class="center">
+    <thead>
+        <tr>
+            <th>Typ</th>
+            <th>Liczba gospodarstw uwzględnionych</th>
+            <th>Liczba osób</th>
+            <th>Całkowite zużycie w typie gospodarstw [m³]</th>
+            <th>Dominanta [m³]</th>
+            <th>Średnia [m³]</th>
+            <th>Odchylenie standardowe [m³]</th>
+            <th>Mediana [m³]</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for household in households %}
+        <tr>
+            <td>{{ household['category'] }}</td>
+            <td>{{ household['count'] }}</td>
+            <td>{{ household['population'] }}</td>
+            <td>{{ household['consumption'] }}</td>
+            <td>{{ household['mode'] }}</td>
+            <td>{{ household['mean'] }}</td>
+            <td>{{ household['stdev'] }}</td>
+            <td>{{ household['median'] }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+    <br><br><br>
+
+<h1>Nadmierne zużycia wody</h1>
+Łączna liczba gospodarstw domowych z nadmiernym zużyciem wody: {{ missing_statistics.count }}<br>
+Łączna liczba brakujących osób: {{ missing_statistics.missing }}<br>
+
+<table>
+<thead class="header">
+  <tr>
+    <th>Miejscowość</th>
+    <th>Liczba domostw</th>
+    <th>Liczba brakujących osób</th>
+  </tr>
+</thead>
+
+
+  <tbody id="accordion">
+    {% for town in missing_statistics.towns %}
+      <!-- Wiersz główny -->
+      <tr class="sub-header">
+        <td>
+          <div><a data-bs-toggle="collapse"
+             href="#collapse_{{ loop.index }}"
+             role="button"
+             aria-expanded="false"
+             aria-controls="collapse_{{ loop.index }}"
+             class="text-decoration-none fw-semibold">
+            {{ town }}
+          </a></div>
+        </td>
+          <td>
+          <div>{{ missing_statistics['towns'][town].count }}</div>
+              </td>
+            <td>
+                <div>{{ missing_statistics['towns'][town].missing }}</div>
+            </td>
+      </tr>
+
+      <!-- Wiersz rozwijany -->
+    <tr id="collapse_{{ loop.index }}" class="collapse">
+      <td colspan="3">
+        <div class="d-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+
+              <div class="subtable-header"><strong>Ulica</strong></div>
+              <div class="subtable-header"><strong></strong></div>
+              <div class="subtable-header"><strong></strong></div>
+
+          {% for street, stats in missing_statistics['towns'][town].streets.items() %}
+            <div>{{ street }}</div>
+            <div>{{ stats.count }}</div>
+            <div>{{ stats.missing }}</div>
+          {% endfor %}
+        </div>
+      </td>
+    </tr>
+
+    {% endfor %}
+  </tbody>
+</table>
+
+
+</div>
+</html>

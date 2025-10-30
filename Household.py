@@ -16,6 +16,7 @@ class Household:
 
 
         self.consumption = 0.0
+        self.yearly_consumption = 0.0
         self.mean = 0.0
 
 
@@ -26,9 +27,9 @@ class Household:
 
     def apply_globals(self):
         if config.use_town_hall_averages:
-            self.consumption = self.town_hall_average * self.population * 12
+            self.yearly_consumption = self.town_hall_average * self.population * 12
         else:
-            self.consumption = self.table_consumption
+            self.yearly_consumption = self.table_consumption
 
         if config.reject_non_yearly_consumption_values:
             try:
@@ -38,12 +39,12 @@ class Household:
                 pass
 
         if self.consider_flag:
-            if self.consumption < 0 and config.reject_negative_consumption_values:
+            if self.yearly_consumption < 0 and config.reject_negative_consumption_values:
                 self.consider_flag = False
-            elif self.consumption == 0 and config.reject_zero_consumption_values:
+            elif self.yearly_consumption == 0 and config.reject_zero_consumption_values:
                 self.consider_flag = False
 
-        self.consumption = self.consumption / config.divider
+        self.consumption = self.yearly_consumption / config.get_divider()
         try:
             self.mean = self.consumption / self.population if self.population != 0 else 0
         except TypeError:
@@ -63,15 +64,16 @@ class Household:
         return missing_in_household
 
     def apply_grouping(self):
-        if self.population in ('Gmina', 1, 2, 3, 4, 5):
-            self.category = self.population
-        elif self.population in range(6, 11):
-            self.category = '6-10'
-        elif self.population in range(11, 26):
-            self.category = '11-25'
-        elif self.population in range(26, 51):
-            self.category = '26-50'
-        elif self.population in range(51, 101):
-            self.category = '51-100'
-        else:
-            self.category = '100 +'
+        if config.group_household_types:
+            if self.population in ('Gmina', 1, 2, 3, 4, 5):
+                self.category = self.population
+            elif self.population in range(6, 11):
+                self.category = '6-10'
+            elif self.population in range(11, 26):
+                self.category = '11-25'
+            elif self.population in range(26, 51):
+                self.category = '26-50'
+            elif self.population in range(51, 101):
+                self.category = '51-100'
+            else:
+                self.category = '100 +'

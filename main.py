@@ -1,14 +1,8 @@
-import time
-
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import config
 from Household import Household
-from HouseholdType import mean
-from HouseholdType import covariance
-from HouseholdType import pearson_correlation
-from HouseholdType import HouseholdType
-
+from HouseholdType import mean, covariance, pearson_correlation, HouseholdType
 
 # Global variables for water consumption and population data
 commune_population = 0
@@ -16,9 +10,7 @@ commune_households = 0
 missing_people = 0
 considered = HouseholdType("Gmina")
 
-households_grouped = {}
-households_not_grouped = {}
-
+household_types = {}
 households = []
 
 missing_statistics = {}
@@ -28,9 +20,9 @@ def load_data(data_file):
     global commune_population, \
         commune_households, \
         considered, \
-        households_grouped, \
+        household_types, \
         missing_people, \
-        households_not_grouped, households
+        households
 
     commune_population = 0
     commune_households = 0
@@ -38,16 +30,13 @@ def load_data(data_file):
 
     considered = HouseholdType("Gmina")
 
-    households_grouped = {}
-    households_not_grouped = {}
+    household_types = {}
     households = []
 
-    print("Wczytywanie danych z pliku...")
     with open(data_file, "r", encoding="utf-8") as file:
         lines = file.readlines()
 
     file.close()
-    print("Tworzenie obiektów gospodarstw domowych...")
     for line in lines:
         line.replace(',','.')
         data = line.split(';')
@@ -71,28 +60,14 @@ def load_data(data_file):
                 commune_households += 1
                 if household.consider_flag:
                     considered.add_household(household)
-                    if household.category not in households_grouped:
+                    if household.category not in household_types.keys():
                         household_type = HouseholdType(household.category)
-                        households_grouped[household.category] = household_type
+                        household_types[household.category] = household_type
                         household_type.add_household(household)
                     else:
-                        household_type = households_grouped[household.category]
+                        household_type = household_types[household.category]
                         household_type.add_household(household)
-
-                    if household.population not in households_not_grouped:
-                        household_type = HouseholdType(household.population)
-                        households_not_grouped[household.population] = household_type
-                        household_type.add_household(household)
-                    else:
-                        household_type = households_not_grouped[household.population]
-                        household_type.add_household(household)
-    print("Przetwarzanie danych typów gospodarstw domowych...")
-    for household_type in households_grouped:
-        household_type = households_grouped[household_type]
-        household_type.process()
-
-    for household_type in households_not_grouped:
-        household_type = households_not_grouped[household_type]
+    for household_type in household_types.values():
         household_type.process()
 
     considered.process()
@@ -105,8 +80,7 @@ def load_data(data_file):
             return int(match.group())  # liczba do sortowania
         return float('inf')  # jeśli brak liczby, wrzucamy na koniec
 
-    households_grouped= dict(sorted(households_grouped.items(), key=lambda item: sort_key(item[1])))
-    households_not_grouped = dict(sorted(households_not_grouped.items(), key=lambda item: sort_key(item[1])))
+    household_types= dict(sorted(household_types.items(), key=lambda item: sort_key(item[1])))
 
 
 def display_output():
@@ -133,7 +107,7 @@ def display_output():
             if final_cell_length[i] < cell_length:
                 final_cell_length[i] = cell_length
 
-        for household_type in households_grouped.values():
+        for household_type in household_types.values():
             print_data = f"{household_type} | {household_type.count} ({round(household_type.count / considered.count * 100, 2)}%) | {household_type.population} ({round(household_type.population / considered.population * 100)}%) | {round(household_type.consumption, 2)} ({round(household_type.consumption / considered.consumption * 100, 2)}%) | {round(household_type.mode, 2)} | {round(household_type.mean, 2)} | {round(household_type.stdev, 2)} | {round(household_type.median, 2)}"
             cells = print_data.split('|')
             printing_data.append(cells)
@@ -192,9 +166,9 @@ def display_output():
     count = 0
 
     print(f"Liczba nadmiarowego użycia w poszczególnych sołectwach")
-    for town in missing_statistics:
-        household_count = missing_statistics[town]['count']
-        missing_people_in_town = missing_statistics[town]['missing']
+    for town in missing_statistics['towns']:
+        household_count = missing_statistics['towns'][town]['count']
+        missing_people_in_town = missing_statistics['towns'][town]['missing']
         print_data = f"{town}: {household_count} gospodarstw, {missing_people_in_town} osób"
         print_data = print_data.replace("\"","")
         print_data = print_data.replace('	','')
@@ -214,19 +188,6 @@ def display_output():
     print()
 
 
-    print(f"Liczba nadmiarowego użycia w poszczególnych sołectwach")
-    for town in missing_statistics:
-        household_count = missing_statistics[town]['count']
-        missing_people_in_town = missing_statistics[town]['missing']
-        print_data = f"{town}: {household_count} gospodarstw, {missing_people_in_town} osób"
-        print_data = print_data.replace("\"","")
-        print_data = print_data.replace('	','')
-        print(print_data)
-    print()
-    print(f"Prawdopodobna liczba gospodarstw domowych z nadmiarowym zużyciem wody: {count}")
-    print(f"Prawdopodobna liczba niewykazanych w umowach śmieciowych osób: {missing_people}")
-    print()
-
     print()
     print()
     print("ANALIZA PIENIĘŻNA")
@@ -241,42 +202,69 @@ def display_output():
 def calculate_threshold(threshold = config.monthly_overusage_threshold):
     global considered
 
-    if type(config.monthly_overusage_threshold * 12 / config.divider) in (int, float):
-        threshold = config.monthly_overusage_threshold * 12 / config.divider
+    if type(config.monthly_overusage_threshold * 12 / config.get_divider()) in (int, float):
+        threshold = config.monthly_overusage_threshold * 12 / config.get_divider()
     elif config.monthly_overusage_threshold== 'mean':
-        threshold = considered.mean* 12 / config.divider
+        threshold = considered.mean* 12 / config.get_divider()
     elif config.monthly_overusage_threshold  == 'mode+stdev':
-        threshold = (considered.stdev + considered.mode) * 12 / config.divider
+        threshold = (considered.stdev + considered.mode) * 12 / config.get_divider()
     elif config.monthly_overusage_threshold  == 'median+stdev':
-        threshold = (considered.stdev + considered.median) * 12 / config.divider
+        threshold = (considered.stdev + considered.median) * 12 / config.get_divider()
     elif config.monthly_overusage_threshold  == 'mean+stdev':
-        threshold = (considered.stdev + considered.mean) * 12 / config.divider
+        threshold = (considered.stdev + considered.mean) * 12 / config.get_divider()
     else:
-        threshold = threshold * 12 / config.divider
+        threshold = threshold * 12 / config.get_divider()
     return threshold
 
 def find_missing_people(town = None, street = None, number=None, threshold=calculate_threshold()):
-    print(f"Obliczanie brakujących osób przy progu zużycia: {round(threshold,2)} m³")
+
     global missing_statistics, households
-    missing_statistics = {}
+    count=0
+    missing=0
+
+    missing_statistics = {'towns': {}}
     for household in households:
         if household.consider_flag:
             if (town is None or household.town == town) and (street is None or household.street == street) and (number is None or household.number == number):
                 missing_in_household = household.count_missing_people(threshold=threshold)
                 if missing_in_household > 0:
-                    if household.town in missing_statistics:
-                        if household.street in missing_statistics[household.town]['streets']:
-                            missing_statistics[household.town]['streets'][household.street]['count'] += 1
-                            missing_statistics[household.town]['streets'][household.street]['missing'] += missing_in_household
-                            missing_statistics[household.town]['missing'] += missing_in_household
-                            missing_statistics[household.town]['count'] += 1
+                    if household.town in missing_statistics['towns']:
+                        if household.street in missing_statistics['towns'][household.town]['streets']:
+                            missing_statistics['towns'][household.town]['streets'][household.street]['count'] += 1
+                            missing_statistics['towns'][household.town]['streets'][household.street]['missing'] += missing_in_household
+                            missing_statistics['towns'][household.town]['missing'] += missing_in_household
+                            missing_statistics['towns'][household.town]['count'] += 1
+                            count += 1
+                            missing += missing_in_household
                         else:
-                            missing_statistics[household.town]['streets'][household.street] = {'count': 1, 'missing': missing_in_household}
-                            missing_statistics[household.town]['missing'] += missing_in_household
-                            missing_statistics[household.town]['count'] += 1
+                            missing_statistics['towns'][household.town]['streets'][household.street] = {'count': 1, 'missing': missing_in_household}
+                            missing_statistics['towns'][household.town]['missing'] += missing_in_household
+                            missing_statistics['towns'][household.town]['count'] += 1
+                            count += 1
+                            missing += missing_in_household
                     else:
-                        missing_statistics[household.town] = {'streets':{household.street: {'count': 1, 'missing': missing_in_household}}, 'count': 1, 'missing': missing_in_household}
-    missing_statistics = dict(sorted(missing_statistics.items(), key=lambda item: item[1]['count'], reverse=True))
+                        missing_statistics['towns'][household.town] = {'streets':{household.street: {'count': 1, 'missing': missing_in_household}}, 'count': 1, 'missing': missing_in_household}
+                        count += 1
+                        missing += missing_in_household
+    missing_statistics['count'] = count
+    missing_statistics['missing'] = missing
+    # sortowanie miejscowości po liczbie brakujących osób
+    missing_statistics['towns'] = dict(
+        sorted(
+            missing_statistics['towns'].items(),
+            key=lambda item: item[1]['count'],
+            reverse=True
+        )
+    )
+    for town in missing_statistics['towns']:
+        # sortowanie ulic po liczbie brakujących osób
+        missing_statistics['towns'][town]['streets'] = dict(
+            sorted(
+                missing_statistics['towns'][town]['streets'].items(),
+                key=lambda item: item[1]['count'],
+                reverse=True
+            )
+        )
     return missing_statistics
 
 def plot():
@@ -308,14 +296,13 @@ def plot():
         plt.rcParams['legend.fontsize'] = 16
         x = []
         y = []
-        for household_type in households_grouped.values():
+        for household_type in household_types.values():
             x.append(household_type.category)
             y.append(household_type.mean)
 
         plt.plot(x, y, '-', markersize=3, color='orange', label='Średnie zużycie wody dla danej liczby mieszkańców')
 
-        for household_type in households_grouped.values():
-            print(household_type)
+        for household_type in household_types.values():
             for mean in household_type.averages:
                 if mean > calculate_threshold():
                     plt.plot(str(household_type.category), mean, 'o', markersize=3, color='red')
@@ -327,7 +314,7 @@ def plot():
         plt.xlabel('Liczba mieszkańców w gospodarstwie domowym')
         plt.ylabel('Średnie zużycie wody [m³]')
         plt.grid(axis='y', alpha=0.75)
-        plt.axhline(y = config.monthly_overusage_threshold * 12 / config.divider, color = "red", linestyle ="-")
+        plt.axhline(y = config.monthly_overusage_threshold * 12 / config.get_divider(), color = "red", linestyle ="-")
         legend_elements = [ Line2D([0], [0], color='orange', label='Średnie zużycie wody', markersize = 3),
                             Line2D([0], [0], color='red', label='Próg zużycia', markersize=3),
                             Line2D([0], [0], marker='o', color='w', label='Powyżej progu', markerfacecolor='r', markersize=10),
@@ -339,8 +326,8 @@ def plot():
 
 def money_analysis():
 
-    current_income = config.fee * commune_population * 12 / config.divider
-    missing_money = missing_people * config.fee * 12 / config.divider
+    current_income = config.fee * commune_population * 12 / config.get_divider()
+    missing_money = missing_people * config.fee * 12 / config.get_divider()
     income_after_correction = current_income + missing_money
     total_population = commune_population + missing_people
     if config.monthly:
@@ -350,11 +337,11 @@ def money_analysis():
 
     water_reckoning = 0
     for household in households:
-        overconsumption = household.consumption - config.linear_reckoning_threshold*12/config.divider
+        overconsumption = household.consumption - config.linear_reckoning_threshold*12/config.get_divider()
         overconsumption = max(0, overconsumption)
         water_reckoning += overconsumption * config.water_price
         if config.linear_reckoning_threshold > 0:
-            water_reckoning += config.base_price*12/config.divider
+            water_reckoning += config.base_price*12/config.get_divider()
 
     water_reckoning = round(water_reckoning,2)
 
@@ -389,26 +376,16 @@ def money_analysis():
 
     return result
 
-def reload():
-    for household in households:
-        household.apply_globals()
-    for household_type in households_grouped.values():
-        household_type.process()
-    for household_type in households_not_grouped.values():
-        household_type.process()
+def reload_and_get_data():
+    global household_types, considered, households
+    load_data(config.data_csv)
+    return find_missing_people(), household_types, considered
 
 
 # Load data from file
-start = time.time()
-load_data(config.data_csv)
-find_missing_people()
-end = time.time()
-print(f"Czas pierwszego uruchomienia: {round(end - start, 2)} sekund")
+#load_data(config.data_csv)
+#find_missing_people()
 
-display_output()
-start = time.time()
-print("Przeładowanie")
-reload()
-end = time.time()
-print(f"Czas przeładowania: {round(end - start, 2)} sekund")
+#display_output()
+#reload()
 # Output
